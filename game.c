@@ -49,6 +49,9 @@ typedef struct piece{
 
 piece* board[BSIZE][BSIZE];
 
+//Determine whose move it is
+char turn = 'w';
+
 /*
  * insert
  * 
@@ -242,6 +245,8 @@ void move_piece(piece* p, char c, char r){
 	BOARD(c, r) = p;
 	BOARD(COL(p->position), ROW(p->position)) = NULL;
 
+	//Change turn
+	turn = (turn == 'w')? 'b' : 'w';
 	if(DEBUG) print_board();
 }
 /*
@@ -259,40 +264,46 @@ char input_move(char* move){
 	if(*move >= 'a' && *move <= 'h'){
 		//The pawn is not taking
 		if(move[1]!='x'){
-			//Potentially first move (white)
-			if(move[1]=='4'){
-				//Not a first move
-				if(BOARD(move[0], '3') != NULL 
-					&& BOARD(move[0], '3')->type == 'P'){
+			//Regular case for white pawn
+			if(BOARD(move[0], move[1]-1) != NULL 
+				&& BOARD(move[0], move[1]-1)->type == 'P'
+				&& BOARD(move[0], move[1]-1)->color == 'w'
+				&& turn == 'w'){
+				
+				move_piece(BOARD(move[0], move[1]-1), move[0], move[1]);
 
-					move_piece(BOARD(move[0], '3'), move[0], move[1]);
+			//Regular case for black pawn			
+			}else if(BOARD(move[0], move[1]+1) != NULL 
+				&& BOARD(move[0], move[1]+1)->type == 'P'
+				&& BOARD(move[0], move[1]+1)->color == 'b'
+				&& turn == 'b'){
+				
+				move_piece(BOARD(move[0], move[1]+1), move[0], move[1]);				
+			
+			//First pawn move (white)
+			}else if(move[1]=='4'){
 				//A first move with no pieces in between
-				}else if(BOARD(move[0], '2') != NULL
+				if(BOARD(move[0], '2') != NULL
 					&& BOARD(move[0], '2')->type == 'P'
+					&& BOARD(move[0], '2')->color == 'w'
 					&& BOARD(move[0], '3') == NULL){
 					
 					move_piece(BOARD(move[0], '2'), move[0], move[1]);
-				}else
-					return 0;
-			}
-
-			//Potentially first move (black)
-			if(move[1]=='5'){
-				//Not a first move
-				if(BOARD(move[0], '6') != NULL 
-					&& BOARD(move[0], '6')->type == 'P'){
-
-					move_piece(BOARD(move[0], '6'), move[0], move[1]);
+				}else return 0;
+			
+			//First pawn move (black)
+			}else if(move[1]=='5'){
 				//A first move with no pieces in between
-				}else if(BOARD(move[0], '7') != NULL
+				if(BOARD(move[0], '7') != NULL
 					&& BOARD(move[0], '7')->type == 'P'
+					&& BOARD(move[0], '7')->color == 'b'
 					&& BOARD(move[0], '6') == NULL){
-					
+
 					move_piece(BOARD(move[0], '7'), move[0], move[1]);
-				}else
-					return 0;
-			}
+				}else return 0;
+			}else return 0;
 		}
+
 	}
 }
 
@@ -301,5 +312,7 @@ int main(){
 	print_board();
 	input_move("e4");
 	input_move("e5");
+	input_move("d3");
+	input_move("d6");
 	clear_board();
 }
