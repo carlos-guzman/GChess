@@ -7,7 +7,7 @@
  * In the future this might turn into an engine
  * But for now, let's just annotate games and then we step higher
  * 
- * 
+ * TODO: Pawn capture
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -265,6 +265,8 @@ char input_move(char* move){
 	if(*move >= 'a' && *move <= 'h'){
 		//The pawn is not taking
 		if(move[1]!='x'){
+			//Square already occupied
+			if(BOARD(move[0], move[1])) return 0;
 			//Regular case for white pawn
 			if(BOARD(move[0], move[1]-1) != NULL 
 				&& BOARD(move[0], move[1]-1)->type == 'P'
@@ -318,5 +320,7 @@ int main(){
 	input_move("f4");
 	input_move("c5");
 	input_move("f5");
+	input_move("f6");
+	input_move("e5");//Should not be played
 	clear_board();
 }
