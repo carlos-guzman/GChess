@@ -1,22 +1,46 @@
+/* Copyright © 2014 by Carlos Guzmán Fernández
+ * 
+ * 
+ * GChess
+ * 
+ * Chess board that allows to enter valid moves and positions into a board
+ * In the future this might turn into an engine
+ * But for now, let's just annotate games and then we step higher
+ * 
+ * 
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+//Translate column and row characters into a byte containing both.
+//00[3 bit row(0-7)][3 bit column(0-7)]
 #define POS(c, r) 	((0 | (c-'a')) | ((r-'1')<<3))
+
+//Get the row or column given a position byte
 #define ROW(c)		(((c & 0x38) >> 3) + '1')
 #define COL(c)		((c & 0x7) + 'a')
+
+//Translate the board from chess notation to array notation
 #define BOARD(c, r) board[8-(r-'0')][c-'a']
+
+//Size of the board
 #define BSIZE 		8
+
+//Represent the board with symbols (1) or just letters(0)
 #define SYMBOLS 0
 #if SYMBOLS == 1
 #include <wchar.h>
 #else
-//#define wchar_t char
+#define wchar_t char
 // #define %lc %c
 #define wprintf printf
 #endif
+
+//Debug option, pretty much equivalent to more verbose
 #define DEBUG 1
 
+//Each piece has a type, position byte(column and row) and color
 typedef struct piece{
 	wchar_t type;
 	char position;
@@ -25,6 +49,11 @@ typedef struct piece{
 
 piece* board[BSIZE][BSIZE];
 
+/*
+ * insert
+ * 
+ * Insert a piece into the board, given its characteristics
+ */
 void insert(char color, wchar_t type, char column, char row){
 	piece* p = (piece*) malloc(sizeof(piece));
 	p->color = color;
@@ -33,10 +62,15 @@ void insert(char color, wchar_t type, char column, char row){
 	BOARD(column, row) = p;
 }
 
+/*
+ * setup_board 
+ * 
+ * Set the board up for a regular game
+ */
 void setup_board(){
 	int i, j;
 	piece* p;
-	//Setup pawns
+	//Pawns
 	for(i=0;i<BSIZE;i++){
 		//Setup black pawns
 		insert('b', 'P', 'a'+i, '7');
@@ -45,16 +79,18 @@ void setup_board(){
 		insert('w', 'P', 'a'+i, '2');
 
 		if(DEBUG){
+			//Print position byte
 			for (j = 0; j < 8; j++) {
 	   		   printf("%d", !!((BOARD('a'+i, '7')->position << j) & 0x80));
 	  		}
   			printf("\n\t");
 
+  			//Print column/row value
 			for (j = 0; j < 8; j++) {
-	   		   printf("%d", !!((COL(BOARD('a'+i, '7')->position) << j) & 0x80));
+	   		   printf("%d", !!((/*ROW*/COL(BOARD('a'+i, '7')->position) << j) & 0x80));
 	  		}
 
-	  		printf("%c", COL((BOARD('a'+i, '7')->position)));
+	  		printf("%c", /*ROW*/COL((BOARD('a'+i, '7')->position)));
   			printf("\n");
 	  	}
 	}
@@ -85,6 +121,11 @@ void setup_board(){
 	insert('w', 'K', 'e', '1');
 }
 
+/*
+ * print_line
+ * 
+ * Prints to the screen a horizontal line. Used when printing the board.
+ */
 void print_line(){
 	int i;
 	printf(" ");
@@ -93,7 +134,14 @@ void print_line(){
 	printf("\n");
 }
 
-wchar_t symbol(piece* p){
+/*
+ * get_symbol
+ * 
+ * Get the unicode symbol for a specific piece to print on the screen
+ * 
+ * @return wchar_t wide character holding the piece's representation
+ */
+wchar_t get_symbol(piece* p){
 	/*
 	FOLLOWING LINES ONLY WORK IF UTF-8 COULD BE ENABLED.
 	i DON'T KNOW HOW TO DO THIS
@@ -131,18 +179,32 @@ wchar_t symbol(piece* p){
 	return c;
 }
 
+/*
+ * print_board
+ * 
+ * Prints the whole board with it's pieces to the screen
+ * There are no square colors, so just consider the bottom right square (h1)
+ * white and the rest intercalating colors.
+ * 
+ * Without symbols, the representations are as follows:
+ *  WHITE is Uppercase, black is lowercase
+ * P - pawn; N - Knight; B - Bishop;
+ * R - Rook; Q - Queen;  K - King; 
+ * 
+ */
 void print_board(){
 	int i, j;
 	wchar_t piece;
 	print_line();
+	//Print each row
 	for(i=0;i<BSIZE;i++){
 		printf("|");
+		//Print each square
 		for(j=0;j<BSIZE;j++){
-			
 			if(board[i][j]==NULL)
 				piece = ' ';
 			else if(SYMBOLS)
-				piece = symbol(board[i][j]);
+				piece = get_symbol(board[i][j]);
 			else if(board[i][j]->color=='w')
 				piece = board[i][j]->type;
 			else
@@ -155,6 +217,11 @@ void print_board(){
 	}
 }
 
+/*
+ * clear_board
+ * 
+ * Frees all the allocated memory for the pieces on the board
+ */
 void clear_board(){
 	int i, j;
 	for(i=0;i<BSIZE;i++)
@@ -164,6 +231,11 @@ void clear_board(){
 		}
 }
 
+/*
+ * move_piece
+ * 
+ * Move a given piece to a valid given square
+ */
 void move_piece(piece* p, char c, char r){
 	printf("Moving %c%c%c\n", p->type, c, r);
 	// BOARD(p)
@@ -172,7 +244,14 @@ void move_piece(piece* p, char c, char r){
 
 	if(DEBUG) print_board();
 }
-
+/*
+ * input_move
+ * 
+ * Given a string that represents a move, execute it if possible
+ * 
+ * @returns 0 if move is not valid/legal
+ * 			1 if move is satisfactory
+ */
 char input_move(char* move){
 	if(strlen(move) < 2 || strlen(move) > 7)//Take dxe8=Q+ into account
 		return 0;
@@ -193,7 +272,8 @@ char input_move(char* move){
 					&& BOARD(move[0], '3') == NULL){
 					
 					move_piece(BOARD(move[0], '2'), move[0], move[1]);
-				}
+				}else
+					return 0;
 			}
 
 			//Potentially first move (black)
@@ -209,7 +289,8 @@ char input_move(char* move){
 					&& BOARD(move[0], '6') == NULL){
 					
 					move_piece(BOARD(move[0], '7'), move[0], move[1]);
-				}
+				}else
+					return 0;
 			}
 		}
 	}
