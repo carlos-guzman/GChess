@@ -244,6 +244,7 @@ void move_piece(piece* p, char c, char r){
 	// BOARD(p)
 	BOARD(c, r) = p;
 	BOARD(COL(p->position), ROW(p->position)) = NULL;
+	p->position = POS(c, r);
 
 	//Change turn
 	turn = (turn == 'w')? 'b' : 'w';
@@ -314,5 +315,8 @@ int main(){
 	input_move("e5");
 	input_move("d3");
 	input_move("d6");
+	input_move("f4");
+	input_move("c5");
+	input_move("f5");
 	clear_board();
 }
