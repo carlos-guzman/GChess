@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <regex.h>
 
 //Translate column and row characters into a byte containing both.
 //00[3 bit row(0-7)][3 bit column(0-7)]
@@ -38,7 +39,7 @@
 #endif
 
 //Debug option, pretty much equivalent to more verbose
-#define DEBUG 1
+#define DEBUG 0
 
 //Each piece has a type, position byte(column and row) and color
 typedef struct piece{
@@ -240,7 +241,7 @@ void clear_board(){
  * Move a given piece to a valid given square
  */
 void move_piece(piece* p, char c, char r){
-	printf("Moving %c%c%c\n", p->type, c, r);
+	if(DEBUG) printf("Moving %c%c%c\n", p->type, c, r);
 	// BOARD(p)
 	BOARD(c, r) = p;
 	BOARD(COL(p->position), ROW(p->position)) = NULL;
@@ -248,7 +249,28 @@ void move_piece(piece* p, char c, char r){
 
 	//Change turn
 	turn = (turn == 'w')? 'b' : 'w';
-	if(DEBUG) print_board();
+	print_board();
+}
+/*
+ * validate_move
+ * 
+ * Validate the given string for a move
+ * 
+ */
+char validate_move(char* move){
+	if(DEBUG)printf("Validating %s\n", move);
+	regex_t regex;
+	if(strlen(move) < 2 || strlen(move) > 7)//Take dxe8=Q+ into account
+		return 0;
+
+	char* expression = "^\\(K\\|\\([QRBN][a-h1-8]\\?\\)\\)\\?\\([a-h]x\\)\\?[a-h][1-8]\\(\\=[QRBN]\\)\\?[\\+\\#]\\?$";
+	//https://regex101.com/r/sH3lF4/2
+	regcomp(&regex, expression, 0);
+
+	if(regexec(&regex, move, 0, NULL, 0)) return 0;
+	
+	regfree(&regex);
+	return 1;
 }
 /*
  * input_move
@@ -259,11 +281,12 @@ void move_piece(piece* p, char c, char r){
  * 			1 if move is satisfactory
  */
 char input_move(char* move){
-	if(strlen(move) < 2 || strlen(move) > 7)//Take dxe8=Q+ into account
-		return 0;
+	if(!validate_move(move)) return 0;
+	if(DEBUG) printf("Input move: %s", move);
 	//It is a pawn
 	if(*move >= 'a' && *move <= 'h'){
-		//The pawn is not taking
+		if(DEBUG) printf(" -> P");
+		//Not a capture
 		if(move[1]!='x'){
 			//Square already occupied
 			if(BOARD(move[0], move[1])) return 0;
@@ -275,13 +298,27 @@ char input_move(char* move){
 				
 				move_piece(BOARD(move[0], move[1]-1), move[0], move[1]);
 
+				//Check if in last row
+				if(move[1]=='8')
+					if(strlen(move)>3 && move[2]!='='
+					&& (move[3]=='Q' || move[3]=='R' || move[3]=='B' || move[3]=='N'))
+						BOARD(move[0], move[1])->type = move[3];
+					else return 0;
+
 			//Regular case for black pawn			
 			}else if(BOARD(move[0], move[1]+1) != NULL 
 				&& BOARD(move[0], move[1]+1)->type == 'P'
 				&& BOARD(move[0], move[1]+1)->color == 'b'
 				&& turn == 'b'){
 				
-				move_piece(BOARD(move[0], move[1]+1), move[0], move[1]);				
+				move_piece(BOARD(move[0], move[1]+1), move[0], move[1]);	
+
+				//Check if in last row for pawn
+				if(move[1]=='1')
+					if(strlen(move)>3 && move[2]!='='
+					&& (move[3]=='Q' || move[3]=='R' || move[3]=='B' || move[3]=='N'))
+						BOARD(move[0], move[1])->type = move[3];
+					else return 0;			
 			
 			//First pawn move (white)
 			}else if(move[1]=='4'){
@@ -305,22 +342,72 @@ char input_move(char* move){
 					move_piece(BOARD(move[0], '7'), move[0], move[1]);
 				}else return 0;
 			}else return 0;
-		}
+		//Pawn capture (not en passant yet)
+		}else{
+			if(DEBUG) printf(" -> x");
+			//Too short or not in adjacent column
+			if(move[0] != move[2]+1 && move[0] != move[2]-1) return 0;
+			//Capture with white pawn
+			if(BOARD(move[2], move[3]) != NULL && BOARD(move[0], move[3]-1) != NULL 
+				//The pieces are different colors
+				&& BOARD(move[2], move[3])->color != BOARD(move[0], move[3]-1)->color
+				//The piece is a white pawn
+				&& BOARD(move[0], move[3]-1)->type == 'P' && BOARD(move[0], move[3]-1)->color == 'w'
+				//The other piece is not a king
+				&& BOARD(move[2], move[3])->type != 'K'){
 
+				if(DEBUG)printf(" -> w");
+				move_piece(BOARD(move[0], move[3]-1), move[2], move[3]);
+
+			//Capture with black pawn
+			}else if(BOARD(move[2], move[3]) != NULL && BOARD(move[0], move[3]+1) != NULL 
+				//The pieces are different colors
+				&& BOARD(move[2], move[3])->color != BOARD(move[0], move[3]+1)->color
+				//The piece is a white pawn
+				&& BOARD(move[0], move[3]+1)->type == 'P' && BOARD(move[0], move[3]+1)->color == 'b'
+				//The other piece is not a king
+				&& BOARD(move[2], move[3])->type != 'K'){
+
+				if(DEBUG)printf(" -> b");
+				move_piece(BOARD(move[0], move[3]+1), move[2], move[3]);
+			}
+		}
+		if(DEBUG)printf("\n");
 	}
+	//It is a knight
+	else if(*move == 'N'){
+		//Nota a capture
+		if(move[1] != 'x'){
+
+		}
+		//
+		else if(strlen(move)<4) return 0;
+	}
+	if(!DEBUG) printf("%s\n", move);
 }
 
 int main(){
 	setup_board();
 	print_board();
-	input_move("e4");
-	input_move("e5");
-	input_move("d3");
-	input_move("d6");
+	//Pawn testing
+	input_move("e4");//First move white double
+	input_move("e5");//First move black double
+	input_move("d3");//First move white regular
+	input_move("d6");//First move black regular
 	input_move("f4");
 	input_move("c5");
-	input_move("f5");
+	input_move("f5");//Regular move white
 	input_move("f6");
 	input_move("e5");//Should not be played
+	input_move("d5");//Should not be played
+	input_move("d4");
+	input_move("c4");//Regular move black
+	input_move("c3");
+	input_move("exd4");//Black takes
+	input_move("cxd4");//White takes
+	input_move("ac1");
+
+
+
 	clear_board();
 }
