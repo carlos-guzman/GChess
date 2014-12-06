@@ -53,9 +53,9 @@
 		&& BOARD(dest_column+col, dest_row+row)->type == 'N' \
 		/*Check that the knight is of the right color */\
 		&& BOARD(dest_column+col, dest_row+row)->color == turn){ \
-			printf("aaa\n");\
 			move_piece(BOARD(dest_column+col, dest_row+row), dest_column, dest_row); \
-			return 1; \
+			source=0;\
+			return 1;\
 		}
 
 //Each piece has a type, position byte(column and row) and color
@@ -233,6 +233,8 @@ void print_board(){
 			
 			printf(" %lc |", piece);
 		}
+		if(i==0 && turn=='b')printf("  BLACK\'s turn");
+		else if(i==BSIZE-1 && turn=='w')printf("  WHITE\'s turn");
 		printf("\n");
 		print_line();
 	}
@@ -276,18 +278,19 @@ void move_piece(piece* p, char c, char r){
  * 
  */
 char validate_move(char* move){
-	if(DEBUG)printf("Validating %s\n", move);
+	if(DEBUG)printf("Validating %s... ", move);
 	regex_t regex;
 	if(strlen(move) < 2 || strlen(move) > 7)//Take dxe8=Q+ into account
 		return 0;
 
-	char* expression = "^\\(K\\|\\([QRBN][a-h1-8]\\?\\)\\)\\?\\([a-h]x\\)\\?[a-h][1-8]\\(\\=[QRBN]\\)\\?[\\+\\#]\\?$";
-	//https://regex101.com/r/sH3lF4/2
+	char* expression = "^\\(K\\|\\([QRBN][a-h1-8]\\?x\\?\\)\\)\\?\\([a-h]x\\)\\?[a-h][1-8]\\(\\=[QRBN]\\)\\?[\\+\\#]\\?$";
+	//https://regex101.com/r/sH3lF4
 	regcomp(&regex, expression, 0);
 
 	if(regexec(&regex, move, 0, NULL, 0)) return 0;
 	
 	regfree(&regex);
+	if(DEBUG) printf("Valid\n");
 	return 1;
 }
 
@@ -411,10 +414,24 @@ char input_move(char* move){
 		}
 		if(DEBUG)printf("\n");
 	}
-	//It is a knight
+
+	//Knight
 	else if(*move == 'N'){
-		//Nota a capture
-		if(move[1] != 'x'){
+		//Knight captures
+		if(move[1] == 'x'){
+			if(strlen(move)>4 && move[4] >= '1' && move[4] <= '8'){
+				source = move[1];
+				dest_column = move[3];
+				dest_row = move[4];
+			}else{
+				dest_column = move[2];
+				dest_row = move[3];
+			}
+			if(BOARD(dest_column, dest_row) == NULL || 
+				BOARD(dest_column, dest_row)->color == turn ||
+				BOARD(dest_column, dest_row)->type == 'K')
+				return 0;
+		}else{
 			//Check for notation like Nbd7.*
 			if(strlen(move)>3 && move[3] >= '1' && move[3] <= '8'){
 				source = move[1];
@@ -424,43 +441,42 @@ char input_move(char* move){
 				dest_column = move[1];
 				dest_row = move[2];
 			}
-			
-			//Check for valid knights
-			//Depending whether knight has been specified
-			if(!source || source == dest_column-1){
-				MOVE_KNIGHT(-1, 2);
-				MOVE_KNIGHT(-1,-2);
-				printf("1\n");
-			}
-			if(!source || source == dest_column+1){
-				MOVE_KNIGHT(1, 2);
-				MOVE_KNIGHT(1,-2);
-				printf("2\n");
-			}
-			if(!source || source == dest_row-1){
-				MOVE_KNIGHT(2,-1);
-				MOVE_KNIGHT(-2,-1);
-				printf("3\n");
-			}
-			if(!source || source == dest_row+1){
-				MOVE_KNIGHT(2, 1);
-				MOVE_KNIGHT(-2, 1);
-			}else if(source == dest_column+2){
-				MOVE_KNIGHT(2, 1);
-				MOVE_KNIGHT(2,-1);
-			}else if(source == dest_column-2){
-				MOVE_KNIGHT(-2, 1);
-				MOVE_KNIGHT(-2,-1);
-			}else if(source == dest_row+2){
-				MOVE_KNIGHT(1, 2);
-				MOVE_KNIGHT(-1,2);
-			}else if(source == dest_row-2){
-				MOVE_KNIGHT(1, -2);
-				MOVE_KNIGHT(-1,-2);
-			}
 		}
-		//
-		else if(strlen(move)<4) return 0;
+		printf("source: %c\n", source);
+		//Check for valid knights
+		//Depending whether knight has been specified
+		if(!source || source == dest_column-1){
+			MOVE_KNIGHT(-1, 2);
+			MOVE_KNIGHT(-1,-2);
+			printf("asd\n");
+		}
+		if(!source || source == dest_column+1){
+			MOVE_KNIGHT(1, 2);
+			MOVE_KNIGHT(1,-2);
+			printf("asd\n");
+		}
+		if(!source || source == dest_row-1){
+			MOVE_KNIGHT(2,-1);
+			MOVE_KNIGHT(-2,-1);
+			printf("asd\n");
+		}
+		if(!source || source == dest_row+1){
+			MOVE_KNIGHT(2, 1);
+			MOVE_KNIGHT(-2, 1);
+			printf("asd\n");
+		}else if(source == dest_column+2){
+			MOVE_KNIGHT(2, 1);
+			MOVE_KNIGHT(2,-1);
+		}else if(source == dest_column-2){
+			MOVE_KNIGHT(-2, 1);
+			MOVE_KNIGHT(-2,-1);
+		}else if(source == dest_row+2){
+			MOVE_KNIGHT(1, 2);
+			MOVE_KNIGHT(-1,2);
+		}else if(source == dest_row-2){
+			MOVE_KNIGHT(1, -2);
+			MOVE_KNIGHT(-1,-2);
+		}
 	}
 	if(!DEBUG) printf("%s\n", move);
 
@@ -500,6 +516,8 @@ int main(){
 	input_move("Nh6");
 	input_move("b3");
 	input_move("Nhg4");//Specify column
+	input_move("Nxe5");
+	input_move("fxe5");//Pawn takes knight
 
 
 	clear_board();
