@@ -427,39 +427,39 @@ char input_move(char* move){
 			
 			//Check for valid knights
 			//Depending whether knight has been specified
-			if(!source || source == dest_column+1){
+			if(!source || source == dest_column-1){
 				MOVE_KNIGHT(-1, 2);
 				MOVE_KNIGHT(-1,-2);
 				printf("1\n");
 			}
-			if(!source || source == dest_column-1){
+			if(!source || source == dest_column+1){
 				MOVE_KNIGHT(1, 2);
 				MOVE_KNIGHT(1,-2);
 				printf("2\n");
 			}
-			if(!source || source == dest_row+1){
+			if(!source || source == dest_row-1){
 				MOVE_KNIGHT(2,-1);
 				MOVE_KNIGHT(-2,-1);
 				printf("3\n");
 			}
-			if(!source || source == dest_row-1){
+			if(!source || source == dest_row+1){
 				MOVE_KNIGHT(2, 1);
 				MOVE_KNIGHT(-2, 1);
-			}else if(source == dest_column-2){
+			}else if(source == dest_column+2){
 				MOVE_KNIGHT(2, 1);
 				MOVE_KNIGHT(2,-1);
-			}else if(source == dest_column+2){
+			}else if(source == dest_column-2){
 				MOVE_KNIGHT(-2, 1);
 				MOVE_KNIGHT(-2,-1);
-			}else if(source == dest_row-2){
+			}else if(source == dest_row+2){
 				MOVE_KNIGHT(1, 2);
 				MOVE_KNIGHT(-1,2);
-			}else if(source == dest_row+2){
+			}else if(source == dest_row-2){
 				MOVE_KNIGHT(1, -2);
 				MOVE_KNIGHT(-1,-2);
 			}
 		}
-		// Knight captures
+		//
 		else if(strlen(move)<4) return 0;
 	}
 	if(!DEBUG) printf("%s\n", move);
@@ -499,7 +499,7 @@ int main(){
 	input_move("Nc3");
 	input_move("Nh6");
 	input_move("b3");
-	input_move("Nfg4");//Specify column
+	input_move("Nhg4");//Specify column
 
 
 	clear_board();
