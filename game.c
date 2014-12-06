@@ -7,7 +7,7 @@
  * In the future this might turn into an engine
  * But for now, let's just annotate games and then we step higher
  * 
- * TODO: Pawn capture
+ * 
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -39,7 +39,24 @@
 #endif
 
 //Debug option, pretty much equivalent to more verbose
-#define DEBUG 0
+#define DEBUG 1
+
+//Code for moving a knight in the direction of the signs of col and row
+ 									//Check for row limits
+#define MOVE_KNIGHT(col, row) if(DEBUG)printf("Knight: %d %d %c %c %d\n", col, row, dest_column, dest_row, BOARD(dest_column+col, dest_row+row) != NULL); \
+ 		if(((row > 0)? (dest_row <= '8'-row) : (dest_row >= '1'-row)) \
+ 		/*Check for column limits */\
+		&& ((col > 0)? (dest_column <= 'h'-col) : (dest_column >= 'a'-col)) \
+		/*Check that there is a piece*/\
+		&& BOARD(dest_column+col, dest_row+row) != NULL \
+		/*Check that the piece is a knight */\
+		&& BOARD(dest_column+col, dest_row+row)->type == 'N' \
+		/*Check that the knight is of the right color */\
+		&& BOARD(dest_column+col, dest_row+row)->color == turn){ \
+			printf("aaa\n");\
+			move_piece(BOARD(dest_column+col, dest_row+row), dest_column, dest_row); \
+			return 1; \
+		}
 
 //Each piece has a type, position byte(column and row) and color
 typedef struct piece{
@@ -241,8 +258,9 @@ void clear_board(){
  * Move a given piece to a valid given square
  */
 void move_piece(piece* p, char c, char r){
+	if(p == NULL) return;
 	if(DEBUG) printf("Moving %c%c%c\n", p->type, c, r);
-	// BOARD(p)
+	
 	BOARD(c, r) = p;
 	BOARD(COL(p->position), ROW(p->position)) = NULL;
 	p->position = POS(c, r);
@@ -272,6 +290,18 @@ char validate_move(char* move){
 	regfree(&regex);
 	return 1;
 }
+
+// char move_knight(char dest_column, char dest_row, char col, char row){
+// 	if((row > 0)? (dest_row <= '8'-row) : (dest_row >= '1'-row) 
+// 		&& (col > 0)? (dest_column <= 'h'-col) : (dest_column >= 'a'-col)
+// 		&& BOARD(dest_column+col, dest_row+row)->type == 'N' &&
+// 		BOARD(dest_column+col, dest_row+row)->color == turn){
+// 			move_piece(BOARD(dest_column+col, dest_row+row), dest_column, dest_row);
+// 			return 1;
+// 		}
+// 	return 0;
+// }
+
 /*
  * input_move
  * 
@@ -281,6 +311,7 @@ char validate_move(char* move){
  * 			1 if move is satisfactory
  */
 char input_move(char* move){
+	char dest_column, dest_row, source;
 	if(!validate_move(move)) return 0;
 	if(DEBUG) printf("Input move: %s", move);
 	//It is a pawn
@@ -288,88 +319,94 @@ char input_move(char* move){
 		if(DEBUG) printf(" -> P");
 		//Not a capture
 		if(move[1]!='x'){
+			dest_column = move[0];
+			dest_row = move[1];
 			//Square already occupied
-			if(BOARD(move[0], move[1])) return 0;
+			if(BOARD(dest_column, dest_row)) return 0;
 			//Regular case for white pawn
-			if(BOARD(move[0], move[1]-1) != NULL 
-				&& BOARD(move[0], move[1]-1)->type == 'P'
-				&& BOARD(move[0], move[1]-1)->color == 'w'
+			if(BOARD(dest_column, dest_row-1) != NULL 
+				&& BOARD(dest_column, dest_row-1)->type == 'P'
+				&& BOARD(dest_column, dest_row-1)->color == 'w'
 				&& turn == 'w'){
 				
-				move_piece(BOARD(move[0], move[1]-1), move[0], move[1]);
+				move_piece(BOARD(dest_column, dest_row-1), dest_column, dest_row);
 
 				//Check if in last row
-				if(move[1]=='8')
+				if(dest_row=='8')
 					if(strlen(move)>3 && move[2]!='='
 					&& (move[3]=='Q' || move[3]=='R' || move[3]=='B' || move[3]=='N'))
-						BOARD(move[0], move[1])->type = move[3];
+						BOARD(dest_column, dest_row)->type = move[3];
 					else return 0;
 
 			//Regular case for black pawn			
-			}else if(BOARD(move[0], move[1]+1) != NULL 
-				&& BOARD(move[0], move[1]+1)->type == 'P'
-				&& BOARD(move[0], move[1]+1)->color == 'b'
+			}else if(BOARD(dest_column, dest_row+1) != NULL 
+				&& BOARD(dest_column, dest_row+1)->type == 'P'
+				&& BOARD(dest_column, dest_row+1)->color == 'b'
 				&& turn == 'b'){
 				
-				move_piece(BOARD(move[0], move[1]+1), move[0], move[1]);	
+				move_piece(BOARD(dest_column, dest_row+1), dest_column, dest_row);	
 
 				//Check if in last row for pawn
-				if(move[1]=='1')
+				if(dest_row=='1')
 					if(strlen(move)>3 && move[2]!='='
 					&& (move[3]=='Q' || move[3]=='R' || move[3]=='B' || move[3]=='N'))
-						BOARD(move[0], move[1])->type = move[3];
+						BOARD(dest_column, dest_row)->type = move[3];
 					else return 0;			
 			
 			//First pawn move (white)
-			}else if(move[1]=='4'){
+			}else if(dest_row=='4'){
 				//A first move with no pieces in between
-				if(BOARD(move[0], '2') != NULL
-					&& BOARD(move[0], '2')->type == 'P'
-					&& BOARD(move[0], '2')->color == 'w'
-					&& BOARD(move[0], '3') == NULL){
+				if(BOARD(dest_column, '2') != NULL
+					&& BOARD(dest_column, '2')->type == 'P'
+					&& BOARD(dest_column, '2')->color == 'w'
+					&& BOARD(dest_column, '3') == NULL){
 					
-					move_piece(BOARD(move[0], '2'), move[0], move[1]);
+					move_piece(BOARD(dest_column, '2'), dest_column, dest_row);
 				}else return 0;
 			
 			//First pawn move (black)
-			}else if(move[1]=='5'){
+			}else if(dest_row=='5'){
 				//A first move with no pieces in between
-				if(BOARD(move[0], '7') != NULL
-					&& BOARD(move[0], '7')->type == 'P'
-					&& BOARD(move[0], '7')->color == 'b'
-					&& BOARD(move[0], '6') == NULL){
+				if(BOARD(dest_column, '7') != NULL
+					&& BOARD(dest_column, '7')->type == 'P'
+					&& BOARD(dest_column, '7')->color == 'b'
+					&& BOARD(dest_column, '6') == NULL){
 
-					move_piece(BOARD(move[0], '7'), move[0], move[1]);
+					move_piece(BOARD(dest_column, '7'), dest_column, dest_row);
 				}else return 0;
 			}else return 0;
 		//Pawn capture (not en passant yet)
 		}else{
+			source = move[0];
+			dest_column = move[2];
+			dest_row = move[3];
+
 			if(DEBUG) printf(" -> x");
 			//Too short or not in adjacent column
-			if(move[0] != move[2]+1 && move[0] != move[2]-1) return 0;
+			if(source != dest_column+1 && source != dest_column-1) return 0;
 			//Capture with white pawn
-			if(BOARD(move[2], move[3]) != NULL && BOARD(move[0], move[3]-1) != NULL 
+			if(BOARD(dest_column, dest_row) != NULL && BOARD(source, dest_row-1) != NULL 
 				//The pieces are different colors
-				&& BOARD(move[2], move[3])->color != BOARD(move[0], move[3]-1)->color
+				&& BOARD(dest_column, dest_row)->color != BOARD(source, dest_row-1)->color
 				//The piece is a white pawn
-				&& BOARD(move[0], move[3]-1)->type == 'P' && BOARD(move[0], move[3]-1)->color == 'w'
+				&& BOARD(source, dest_row-1)->type == 'P' && BOARD(source, dest_row-1)->color == 'w'
 				//The other piece is not a king
-				&& BOARD(move[2], move[3])->type != 'K'){
+				&& BOARD(dest_column, dest_row)->type != 'K'){
 
 				if(DEBUG)printf(" -> w");
-				move_piece(BOARD(move[0], move[3]-1), move[2], move[3]);
+				move_piece(BOARD(source, dest_row-1), dest_column, dest_row);
 
 			//Capture with black pawn
-			}else if(BOARD(move[2], move[3]) != NULL && BOARD(move[0], move[3]+1) != NULL 
+			}else if(BOARD(dest_column, dest_row) != NULL && BOARD(source, dest_row+1) != NULL 
 				//The pieces are different colors
-				&& BOARD(move[2], move[3])->color != BOARD(move[0], move[3]+1)->color
+				&& BOARD(dest_column, dest_row)->color != BOARD(source, dest_row+1)->color
 				//The piece is a white pawn
-				&& BOARD(move[0], move[3]+1)->type == 'P' && BOARD(move[0], move[3]+1)->color == 'b'
+				&& BOARD(source, dest_row+1)->type == 'P' && BOARD(source, dest_row+1)->color == 'b'
 				//The other piece is not a king
-				&& BOARD(move[2], move[3])->type != 'K'){
+				&& BOARD(dest_column, dest_row)->type != 'K'){
 
 				if(DEBUG)printf(" -> b");
-				move_piece(BOARD(move[0], move[3]+1), move[2], move[3]);
+				move_piece(BOARD(source, dest_row+1), dest_column, dest_row);
 			}
 		}
 		if(DEBUG)printf("\n");
@@ -378,12 +415,58 @@ char input_move(char* move){
 	else if(*move == 'N'){
 		//Nota a capture
 		if(move[1] != 'x'){
-
+			//Check for notation like Nbd7.*
+			if(strlen(move)>3 && move[3] >= '1' && move[3] <= '8'){
+				source = move[1];
+				dest_column = move[2];
+				dest_row = move[3];
+			}else{
+				dest_column = move[1];
+				dest_row = move[2];
+			}
+			
+			//Check for valid knights
+			//Depending whether knight has been specified
+			if(!source || source == dest_column+1){
+				MOVE_KNIGHT(-1, 2);
+				MOVE_KNIGHT(-1,-2);
+				printf("1\n");
+			}
+			if(!source || source == dest_column-1){
+				MOVE_KNIGHT(1, 2);
+				MOVE_KNIGHT(1,-2);
+				printf("2\n");
+			}
+			if(!source || source == dest_row+1){
+				MOVE_KNIGHT(2,-1);
+				MOVE_KNIGHT(-2,-1);
+				printf("3\n");
+			}
+			if(!source || source == dest_row-1){
+				MOVE_KNIGHT(2, 1);
+				MOVE_KNIGHT(-2, 1);
+			}else if(source == dest_column-2){
+				MOVE_KNIGHT(2, 1);
+				MOVE_KNIGHT(2,-1);
+			}else if(source == dest_column+2){
+				MOVE_KNIGHT(-2, 1);
+				MOVE_KNIGHT(-2,-1);
+			}else if(source == dest_row-2){
+				MOVE_KNIGHT(1, 2);
+				MOVE_KNIGHT(-1,2);
+			}else if(source == dest_row+2){
+				MOVE_KNIGHT(1, -2);
+				MOVE_KNIGHT(-1,-2);
+			}
 		}
-		//
+		// Knight captures
 		else if(strlen(move)<4) return 0;
 	}
 	if(!DEBUG) printf("%s\n", move);
+
+	source = 0;
+	dest_row = 0;
+	dest_column = 0;
 }
 
 int main(){
@@ -407,6 +490,16 @@ int main(){
 	input_move("cxd4");//White takes
 	input_move("ac1");
 
+	input_move("Nc6");//Knight game
+	input_move("Nf3");
+	//White and black can move to the same square
+	if(0)
+		input_move("Nh6");
+	input_move("Ne5");
+	input_move("Nc3");
+	input_move("Nh6");
+	input_move("b3");
+	input_move("Nfg4");//Specify column
 
 
 	clear_board();
