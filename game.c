@@ -54,13 +54,13 @@
 		/*Check that the knight is of the right color */\
 		&& BOARD(dest_column+col, dest_row+row)->color == turn){ \
 			move_piece(BOARD(dest_column+col, dest_row+row), dest_column, dest_row); \
-			/*Reset the source for next move*/
+			/*Reset the source for next move*/\
 			source=0;\
 			return 1;\
 		}
 
 //Moving bishop in the direction of specified corner
-#define MOVE_BISHOP(col, row) if(DEBUG)printf("Bishop: %d %d %c %c\n", col, row, dest_column, dest_row); \
+#define MOVE_BISHOP(col, row) if(DEBUG)printf("Bishop: %c %c %c %c\n", col, row, dest_column, dest_row); \
 		/*Specify limits depending on direction*/\
 		while((col=='h')? (current_col < 'h') : (current_col > 'a')\
 		 	&& (row=='8')? (current_row <'8') : (current_row > '1')){\
@@ -75,6 +75,7 @@
 					move_piece(BOARD(current_col, current_row), dest_column, dest_row);\
 					/*Reset the source for next move*/\
 					source=0;\
+					return 1;\
 				}\
 				break;\
 			}\
@@ -328,10 +329,10 @@ char validate_move(char* move){
 char input_move(char* move){
 	char dest_column, dest_row, source;
 	if(!validate_move(move)) return 0;
-	if(DEBUG) printf("Input move: %s", move);
+	if(DEBUG) printf("Input move: %s\n", move);
 	//It is a pawn
 	if(*move >= 'a' && *move <= 'h'){
-		if(DEBUG) printf(" -> P");
+		if(DEBUG) printf("Pawn: ");
 		//Not a capture
 		if(move[1]!='x'){
 			dest_column = move[0];
@@ -396,7 +397,7 @@ char input_move(char* move){
 			dest_column = move[2];
 			dest_row = move[3];
 
-			if(DEBUG) printf(" -> x");
+			if(DEBUG) printf("takes ");
 			//Too short or not in adjacent column
 			if(source != dest_column+1 && source != dest_column-1) return 0;
 			//Capture with white pawn
@@ -408,7 +409,7 @@ char input_move(char* move){
 				//The other piece is not a king
 				&& BOARD(dest_column, dest_row)->type != 'K'){
 
-				if(DEBUG)printf(" -> w");
+				if(DEBUG)printf("black\n");
 				move_piece(BOARD(source, dest_row-1), dest_column, dest_row);
 
 			//Capture with black pawn
@@ -420,11 +421,10 @@ char input_move(char* move){
 				//The other piece is not a king
 				&& BOARD(dest_column, dest_row)->type != 'K'){
 
-				if(DEBUG)printf(" -> b");
+				if(DEBUG)printf("white\n");
 				move_piece(BOARD(source, dest_row+1), dest_column, dest_row);
 			}
 		}
-		if(DEBUG)printf("\n");
 	}
 
 	//King
@@ -506,6 +506,9 @@ char input_move(char* move){
 			MOVE_BISHOP('h', '1');
 			MOVE_BISHOP('a', '1');
 			MOVE_BISHOP('a', '8');
+
+			//If bishop not found
+			if(DEBUG)printf("Invalid\n");
 		}
 	}
 	if(!DEBUG) printf("%s\n", move);
@@ -550,6 +553,8 @@ int main(){
 	input_move("fxe5");//Pawn takes knight
 	input_move("bxc4");
 	input_move("Be7");//Bishop top right from destination
+	if(0)
+		input_move("Bd5");//Should not be played
 	input_move("Bd3");//Bottom right
 	input_move("Bxf5");//Top left + Capture
 	input_move("Bg5");//Bottom left
