@@ -7,7 +7,9 @@
  * In the future this might turn into an engine
  * But for now, let's just annotate games and then we step higher
  * 
- * 
+ * The program works from the destination of a move to find the piece,
+ * probably inefficient but I'll program it vice versa after this version 
+ * finished
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -463,6 +465,10 @@ char input_move(char* move){
 			}
 		}
 
+		//Since we are going to loop through cols/rows, set initial values
+		char current_col = dest_column;
+		char current_row = dest_row;
+
 		//Knight
 		if(*move == 'N'){
 			//Check for valid knights around destination
@@ -499,16 +505,41 @@ char input_move(char* move){
 
 		//Bishop
 		else if(*move == 'B'){
-			char current_col = dest_column;
-			char current_row = dest_row;
 			//Check all diagonals
-			MOVE_BISHOP('h', '8');
-			MOVE_BISHOP('h', '1');
-			MOVE_BISHOP('a', '1');
-			MOVE_BISHOP('a', '8');
+			if(!source || source > dest_column){
+				MOVE_BISHOP('h', '8');
+				MOVE_BISHOP('h', '1');
+			}
+			if(!source || (source < dest_column && source >= 'a')){
+				MOVE_BISHOP('a', '1');
+				MOVE_BISHOP('a', '8');
+			}else if(source > dest_row){
+				MOVE_BISHOP('a', '8');
+				MOVE_BISHOP('h', '8');
+			}else if(source < dest_row){
+				MOVE_BISHOP('a', '1');
+				MOVE_BISHOP('h', '1');
+			}
 
 			//If bishop not found
 			if(DEBUG)printf("Invalid\n");
+		}
+
+		//Rook
+		else if(*move == 'R'){
+			while(current_row < '8'){
+				current_row++;
+				if(BOARD(current_col, current_row) != NULL){
+					if(BOARD(current_col, current_row)->type == 'R' &&
+						BOARD(current_col, current_col)->color == turn)
+						move_piece(BOARD(current_col, current_row), dest_column, dest_row);
+						/*Reset the source for next move*/
+						source=0;
+						return 1;
+					break;
+				}
+			}
+
 		}
 	}
 	if(!DEBUG) printf("%s\n", move);
