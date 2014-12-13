@@ -42,8 +42,8 @@
 #define DEBUG 1
 
 //Code for moving a knight in the direction of the signs of col and row
- 									//Check for row limits
 #define MOVE_KNIGHT(col, row) if(DEBUG)printf("Knight: %d %d %c %c %d\n", col, row, dest_column, dest_row, BOARD(dest_column+col, dest_row+row) != NULL); \
+ 		/*Check for row limits */\
  		if(((row > 0)? (dest_row <= '8'-row) : (dest_row >= '1'-row)) \
  		/*Check for column limits */\
 		&& ((col > 0)? (dest_column <= 'h'-col) : (dest_column >= 'a'-col)) \
@@ -161,7 +161,7 @@ void print_line(){
  * Get the unicode symbol for a specific piece to print on the screen
  * 
  * @return wchar_t wide character holding the piece's representation
- */
+ *
 wchar_t get_symbol(piece* p){
 	/*
 	FOLLOWING LINES ONLY WORK IF UTF-8 COULD BE ENABLED.
@@ -176,7 +176,8 @@ wchar_t get_symbol(piece* p){
 		case 'R': c++;
 		case 'Q': c++;
 	}
-	*/
+	/
+	
 	wchar_t c;
 	if(p->color == 'w'){
 		switch(p->type){
@@ -199,7 +200,7 @@ wchar_t get_symbol(piece* p){
 	}
 	return c;
 }
-
+*/
 /*
  * print_board
  * 
@@ -293,17 +294,6 @@ char validate_move(char* move){
 	if(DEBUG) printf("Valid\n");
 	return 1;
 }
-
-// char move_knight(char dest_column, char dest_row, char col, char row){
-// 	if((row > 0)? (dest_row <= '8'-row) : (dest_row >= '1'-row) 
-// 		&& (col > 0)? (dest_column <= 'h'-col) : (dest_column >= 'a'-col)
-// 		&& BOARD(dest_column+col, dest_row+row)->type == 'N' &&
-// 		BOARD(dest_column+col, dest_row+row)->color == turn){
-// 			move_piece(BOARD(dest_column+col, dest_row+row), dest_column, dest_row);
-// 			return 1;
-// 		}
-// 	return 0;
-// }
 
 /*
  * input_move
@@ -415,24 +405,32 @@ char input_move(char* move){
 		if(DEBUG)printf("\n");
 	}
 
-	//Knight
-	else if(*move == 'N'){
-		//Knight captures
+	//King
+	else if(*move == 'K'){
+
+	}
+	else{
+		//Piece captures
 		if(move[1] == 'x'){
+			//Check for notation like Bbxd7.* (after pawn turns into bishop)
 			if(strlen(move)>4 && move[4] >= '1' && move[4] <= '8'){
 				source = move[1];
 				dest_column = move[3];
 				dest_row = move[4];
-			}else{
+			}
+			//Regular move
+			else{
 				dest_column = move[2];
 				dest_row = move[3];
 			}
 			if(BOARD(dest_column, dest_row) == NULL || 
+				//Capture different color piece
 				BOARD(dest_column, dest_row)->color == turn ||
+				//Not take the king
 				BOARD(dest_column, dest_row)->type == 'K')
 				return 0;
+		//Piece does not capture
 		}else{
-			//Check for notation like Nbd7.*
 			if(strlen(move)>3 && move[3] >= '1' && move[3] <= '8'){
 				source = move[1];
 				dest_column = move[2];
@@ -442,40 +440,94 @@ char input_move(char* move){
 				dest_row = move[2];
 			}
 		}
-		printf("source: %c\n", source);
-		//Check for valid knights
-		//Depending whether knight has been specified
-		if(!source || source == dest_column-1){
-			MOVE_KNIGHT(-1, 2);
-			MOVE_KNIGHT(-1,-2);
-			printf("asd\n");
+
+		//Knight
+		if(*move == 'N'){
+			//Check for valid knights around destination
+			//Depending whether knight has been specified
+			if(!source || source == dest_column-1){
+				MOVE_KNIGHT(-1, 2);
+				MOVE_KNIGHT(-1,-2);
+			}
+			if(!source || source == dest_column+1){
+				MOVE_KNIGHT(1, 2);
+				MOVE_KNIGHT(1,-2);
+			}
+			if(!source || source == dest_row-1){
+				MOVE_KNIGHT(2,-1);
+				MOVE_KNIGHT(-2,-1);
+			}
+			if(!source || source == dest_row+1){
+				MOVE_KNIGHT(2, 1);
+				MOVE_KNIGHT(-2, 1);
+			}else if(source == dest_column+2){
+				MOVE_KNIGHT(2, 1);
+				MOVE_KNIGHT(2,-1);
+			}else if(source == dest_column-2){
+				MOVE_KNIGHT(-2, 1);
+				MOVE_KNIGHT(-2,-1);
+			}else if(source == dest_row+2){
+				MOVE_KNIGHT(1, 2);
+				MOVE_KNIGHT(-1,2);
+			}else if(source == dest_row-2){
+				MOVE_KNIGHT(1, -2);
+				MOVE_KNIGHT(-1,-2);
+			}
 		}
-		if(!source || source == dest_column+1){
-			MOVE_KNIGHT(1, 2);
-			MOVE_KNIGHT(1,-2);
-			printf("asd\n");
-		}
-		if(!source || source == dest_row-1){
-			MOVE_KNIGHT(2,-1);
-			MOVE_KNIGHT(-2,-1);
-			printf("asd\n");
-		}
-		if(!source || source == dest_row+1){
-			MOVE_KNIGHT(2, 1);
-			MOVE_KNIGHT(-2, 1);
-			printf("asd\n");
-		}else if(source == dest_column+2){
-			MOVE_KNIGHT(2, 1);
-			MOVE_KNIGHT(2,-1);
-		}else if(source == dest_column-2){
-			MOVE_KNIGHT(-2, 1);
-			MOVE_KNIGHT(-2,-1);
-		}else if(source == dest_row+2){
-			MOVE_KNIGHT(1, 2);
-			MOVE_KNIGHT(-1,2);
-		}else if(source == dest_row-2){
-			MOVE_KNIGHT(1, -2);
-			MOVE_KNIGHT(-1,-2);
+
+		//Bishop
+		else if(*move == 'B'){
+			char current_col = dest_column;
+			char current_row = dest_row;
+			//Top right diagonal
+			while(current_col < 'h' && current_row <'8'){
+				current_col++;
+				current_row++;
+				if(BOARD(current_col, current_row) != NULL){
+				 	if(BOARD(current_col, current_row)->type == 'B' &&
+						BOARD(current_col, current_row)->color == turn){
+
+						move_piece(BOARD(current_col, current_row), dest_column, dest_row);
+					}
+					else break;
+				}
+			}
+			while(current_col < 'h' && current_row >'1'){
+				current_col++;
+				current_row--;
+				if(BOARD(current_col, current_row) != NULL){
+				 	if(BOARD(current_col, current_row)->type == 'B' &&
+						BOARD(current_col, current_row)->color == turn){
+
+						move_piece(BOARD(current_col, current_row), dest_column, dest_row);
+					}
+					else break;
+				}
+			}
+			while(current_col > 'a' && current_row >'1'){
+				current_col--;
+				current_row--;
+				if(BOARD(current_col, current_row) != NULL){
+				 	if(BOARD(current_col, current_row)->type == 'B' &&
+						BOARD(current_col, current_row)->color == turn){
+
+						move_piece(BOARD(current_col, current_row), dest_column, dest_row);
+					}
+					else break;
+				}
+			}
+			while(current_col > 'a' && current_row <'8'){
+				current_col--;
+				current_row++;
+				if(BOARD(current_col, current_row) != NULL){
+				 	if(BOARD(current_col, current_row)->type == 'B' &&
+						BOARD(current_col, current_row)->color == turn){
+
+						move_piece(BOARD(current_col, current_row), dest_column, dest_row);
+					}
+					else break;
+				}
+			}
 		}
 	}
 	if(!DEBUG) printf("%s\n", move);
@@ -518,7 +570,11 @@ int main(){
 	input_move("Nhg4");//Specify column
 	input_move("Nxe5");
 	input_move("fxe5");//Pawn takes knight
-
+	input_move("bxc4");
+	input_move("Be7");//Bishop top right from destination
+	input_move("Bd3");//Bottom right
+	input_move("Bxf5");//Top left + Capture
+	input_move("Bg5");//Bottom left
 
 	clear_board();
 }
