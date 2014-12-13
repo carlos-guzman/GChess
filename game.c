@@ -54,8 +54,30 @@
 		/*Check that the knight is of the right color */\
 		&& BOARD(dest_column+col, dest_row+row)->color == turn){ \
 			move_piece(BOARD(dest_column+col, dest_row+row), dest_column, dest_row); \
+			/*Reset the source for next move*/
 			source=0;\
 			return 1;\
+		}
+
+//Moving bishop in the direction of specified corner
+#define MOVE_BISHOP(col, row) if(DEBUG)printf("Bishop: %d %d %c %c\n", col, row, dest_column, dest_row); \
+		/*Specify limits depending on direction*/\
+		while((col=='h')? (current_col < 'h') : (current_col > 'a')\
+		 	&& (row=='8')? (current_row <'8') : (current_row > '1')){\
+			/*Specify direction*/\
+			(col=='h')? current_col++ : current_col--;\
+			(row=='8')? current_row++ : current_row--;\
+			/*If there is a piece*/\
+			if(BOARD(current_col, current_row) != NULL){\
+				/*It has to be a bishop of the current color*/\
+			 	if(BOARD(current_col, current_row)->type == 'B' &&\
+					BOARD(current_col, current_row)->color == turn){\
+					move_piece(BOARD(current_col, current_row), dest_column, dest_row);\
+					/*Reset the source for next move*/\
+					source=0;\
+				}\
+				break;\
+			}\
 		}
 
 //Each piece has a type, position byte(column and row) and color
@@ -479,55 +501,11 @@ char input_move(char* move){
 		else if(*move == 'B'){
 			char current_col = dest_column;
 			char current_row = dest_row;
-			//Top right diagonal
-			while(current_col < 'h' && current_row <'8'){
-				current_col++;
-				current_row++;
-				if(BOARD(current_col, current_row) != NULL){
-				 	if(BOARD(current_col, current_row)->type == 'B' &&
-						BOARD(current_col, current_row)->color == turn){
-
-						move_piece(BOARD(current_col, current_row), dest_column, dest_row);
-					}
-					else break;
-				}
-			}
-			while(current_col < 'h' && current_row >'1'){
-				current_col++;
-				current_row--;
-				if(BOARD(current_col, current_row) != NULL){
-				 	if(BOARD(current_col, current_row)->type == 'B' &&
-						BOARD(current_col, current_row)->color == turn){
-
-						move_piece(BOARD(current_col, current_row), dest_column, dest_row);
-					}
-					else break;
-				}
-			}
-			while(current_col > 'a' && current_row >'1'){
-				current_col--;
-				current_row--;
-				if(BOARD(current_col, current_row) != NULL){
-				 	if(BOARD(current_col, current_row)->type == 'B' &&
-						BOARD(current_col, current_row)->color == turn){
-
-						move_piece(BOARD(current_col, current_row), dest_column, dest_row);
-					}
-					else break;
-				}
-			}
-			while(current_col > 'a' && current_row <'8'){
-				current_col--;
-				current_row++;
-				if(BOARD(current_col, current_row) != NULL){
-				 	if(BOARD(current_col, current_row)->type == 'B' &&
-						BOARD(current_col, current_row)->color == turn){
-
-						move_piece(BOARD(current_col, current_row), dest_column, dest_row);
-					}
-					else break;
-				}
-			}
+			//Check all diagonals
+			MOVE_BISHOP('h', '8');
+			MOVE_BISHOP('h', '1');
+			MOVE_BISHOP('a', '1');
+			MOVE_BISHOP('a', '8');
 		}
 	}
 	if(!DEBUG) printf("%s\n", move);
