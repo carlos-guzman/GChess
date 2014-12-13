@@ -62,13 +62,14 @@
 		}
 
 //Moving bishop in the direction of specified corner
-#define MOVE_BISHOP(col, row) if(DEBUG)printf("Bishop: %c %c %c %c\n", col, row, dest_column, dest_row); \
+#define MOVE_BISHOP(col, row) \
 		/*Specify limits depending on direction*/\
 		while((col=='h')? (current_col < 'h') : (current_col > 'a')\
 		 	&& (row=='8')? (current_row <'8') : (current_row > '1')){\
 			/*Specify direction*/\
 			(col=='h')? current_col++ : current_col--;\
 			(row=='8')? current_row++ : current_row--;\
+			if(DEBUG)printf("Bishop: %c %c %c %c\n", current_col, current_row, dest_column, dest_row); \
 			/*If there is a piece*/\
 			if(BOARD(current_col, current_row) != NULL){\
 				/*It has to be a bishop of the current color*/\
@@ -81,7 +82,36 @@
 				}\
 				break;\
 			}\
-		}
+		}\
+		/*Reset current row and column*/\
+		current_col = dest_column;\
+		current_row = dest_row;
+
+//Check for rooks in the direction d (a, h, 1, 8) = (left, right, down, up)
+#define MOVE_ROOK(d) \
+		/*Check for all directions*/\
+		while((d=='8')? (current_row < '8') : \
+			 ((d=='1')? (current_row > '1') : \
+			 ((d=='a')? (current_col > 'a') :\
+			            (current_col < 'h')))){\
+			 (d=='8')? (current_row++) : \
+			((d=='1')? (current_row--) : \
+			((d=='a')? (current_col--) :\
+			           (current_col++)));\
+			if(DEBUG)printf("Rook: %c %c %c %c\n", current_col, current_row, dest_column, dest_row);\
+			if(BOARD(current_col, current_row) != NULL){\
+				if(BOARD(current_col, current_row)->type == 'R' &&\
+					BOARD(current_col, current_row)->color == turn){\
+					move_piece(BOARD(current_col, current_row), dest_column, dest_row);\
+					/*Reset the source for next move*/\
+					source=0;\
+					return 1;\
+				}\
+				break;\
+			}\
+		}\
+		current_col = dest_column;\
+		current_row = dest_row;
 
 //Each piece has a type, position byte(column and row) and color
 typedef struct piece{
@@ -433,6 +463,10 @@ char input_move(char* move){
 	else if(*move == 'K'){
 
 	}
+	//Castling
+	else if(*move == 'O'){
+
+	}
 	else{
 		//Piece captures
 		if(move[1] == 'x'){
@@ -501,11 +535,12 @@ char input_move(char* move){
 				MOVE_KNIGHT(1, -2);
 				MOVE_KNIGHT(-1,-2);
 			}
+			if(DEBUG)printf("Invalid\n");			
 		}
 
 		//Bishop
 		else if(*move == 'B'){
-			//Check all diagonals
+			//Check all diagonals clockwise
 			if(!source || source > dest_column){
 				MOVE_BISHOP('h', '8');
 				MOVE_BISHOP('h', '1');
@@ -520,26 +555,22 @@ char input_move(char* move){
 				MOVE_BISHOP('a', '1');
 				MOVE_BISHOP('h', '1');
 			}
-
-			//If bishop not found
 			if(DEBUG)printf("Invalid\n");
 		}
 
 		//Rook
 		else if(*move == 'R'){
-			while(current_row < '8'){
-				current_row++;
-				if(BOARD(current_col, current_row) != NULL){
-					if(BOARD(current_col, current_row)->type == 'R' &&
-						BOARD(current_col, current_col)->color == turn)
-						move_piece(BOARD(current_col, current_row), dest_column, dest_row);
-						/*Reset the source for next move*/
-						source=0;
-						return 1;
-					break;
-				}
-			}
-
+			//Check for rook moves in all directions, clockwise from up
+			if(!source || source < dest_row)
+				MOVE_ROOK('8');
+			if(!source || (source < dest_column && source >= 'a'))
+				MOVE_ROOK('h');
+			if(!source || (source > dest_row && source <= '8'))
+				MOVE_ROOK('1');
+			if(!source || source > dest_column)
+				MOVE_ROOK('a');
+			
+			if(DEBUG)printf("Invalid\n");
 		}
 	}
 	if(!DEBUG) printf("%s\n", move);
@@ -589,6 +620,13 @@ int main(){
 	input_move("Bd3");//Bottom right
 	input_move("Bxf5");//Top left + Capture
 	input_move("Bg5");//Bottom left
+	input_move("Rc8");//Rook to right
+	input_move("Rb1");
+	input_move("Rc6");//Rook down
+	if(0)
+		input_move("Rb8");//Should not be played
+	input_move("Rb6");//Rook up
+	input_move("Rxb6");//Rook left and capture
 
 	clear_board();
 }
