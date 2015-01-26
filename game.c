@@ -44,7 +44,7 @@
 #define DEBUG 1
 
 //Code for moving a knight in the direction of the signs of col and row
-#define MOVE_KNIGHT(col, row) if(DEBUG)printf("Knight: %d %d %c %c %d\n", col, row, dest_column, dest_row, BOARD(dest_column+col, dest_row+row) != NULL); \
+#define MOVE_KNIGHT(col, row) if(DEBUG)printf("Knight: %d %d %c %c %dn", col, row, dest_column, dest_row, BOARD(dest_column+col, dest_row+row) != NULL); \
  		/*Check for row limits */\
  		if(((row > 0)? (dest_row <= '8'-row) : (dest_row >= '1'-row)) \
  		/*Check for column limits */\
@@ -61,19 +61,21 @@
 			return 1;\
 		}
 
+//Not sure if macros should be this long...
+
 //Moving bishop in the direction of specified corner
-#define MOVE_BISHOP(col, row) \
+#define MOVE_DIAG(col, row, piece) \
 		/*Specify limits depending on direction*/\
 		while((col=='h')? (current_col < 'h') : (current_col > 'a')\
 		 	&& (row=='8')? (current_row <'8') : (current_row > '1')){\
 			/*Specify direction*/\
 			(col=='h')? current_col++ : current_col--;\
 			(row=='8')? current_row++ : current_row--;\
-			if(DEBUG)printf("Bishop: %c %c %c %c\n", current_col, current_row, dest_column, dest_row); \
+			if(DEBUG)printf("%c: %c %c %c %cn", piece, current_col, current_row, dest_column, dest_row); \
 			/*If there is a piece*/\
 			if(BOARD(current_col, current_row) != NULL){\
 				/*It has to be a bishop of the current color*/\
-			 	if(BOARD(current_col, current_row)->type == 'B' &&\
+			 	if(BOARD(current_col, current_row)->type == piece &&\
 					BOARD(current_col, current_row)->color == turn){\
 					move_piece(BOARD(current_col, current_row), dest_column, dest_row);\
 					/*Reset the source for next move*/\
@@ -88,7 +90,7 @@
 		current_row = dest_row;
 
 //Check for rooks in the direction d (a, h, 1, 8) = (left, right, down, up)
-#define MOVE_ROOK(d) \
+#define MOVE_STRAIGHT(d, piece) \
 		/*Check for all directions*/\
 		while((d=='8')? (current_row < '8') : \
 			 ((d=='1')? (current_row > '1') : \
@@ -98,9 +100,9 @@
 			((d=='1')? (current_row--) : \
 			((d=='a')? (current_col--) :\
 			           (current_col++)));\
-			if(DEBUG)printf("Rook: %c %c %c %c\n", current_col, current_row, dest_column, dest_row);\
+			if(DEBUG)printf("%c: %c %c %c %c\n", piece, current_col, current_row, dest_column, dest_row);\
 			if(BOARD(current_col, current_row) != NULL){\
-				if(BOARD(current_col, current_row)->type == 'R' &&\
+				if(BOARD(current_col, current_row)->type == piece &&\
 					BOARD(current_col, current_row)->color == turn){\
 					move_piece(BOARD(current_col, current_row), dest_column, dest_row);\
 					/*Reset the source for next move*/\
@@ -159,7 +161,7 @@ void setup_board(){
 			for (j = 0; j < 8; j++) {
 	   		   printf("%d", !!((BOARD('a'+i, '7')->position << j) & 0x80));
 	  		}
-  			printf("\n\t");
+  			printf("nt");
 
   			//Print column/row value
 			for (j = 0; j < 8; j++) {
@@ -167,7 +169,7 @@ void setup_board(){
 	  		}
 
 	  		printf("%c", /*ROW*/COL((BOARD('a'+i, '7')->position)));
-  			printf("\n");
+  			printf("n");
 	  	}
 	}
 	//Rooks
@@ -207,7 +209,7 @@ void print_line(){
 	printf(" ");
 	for(i=0;i<BSIZE*4-1;i++)
 		printf("-");
-	printf("\n");
+	printf("n");
 }
 
 /*
@@ -289,9 +291,9 @@ void print_board(){
 			
 			printf(" %lc |", piece);
 		}
-		if(i==0 && turn=='b')printf("  BLACK\'s turn");
-		else if(i==BSIZE-1 && turn=='w')printf("  WHITE\'s turn");
-		printf("\n");
+		if(i==0 && turn=='b')printf("  BLACK's turn");
+		else if(i==BSIZE-1 && turn=='w')printf("  WHITE's turn");
+		printf("n");
 		print_line();
 	}
 }
@@ -317,7 +319,7 @@ void clear_board(){
  */
 void move_piece(piece* p, char c, char r){
 	if(p == NULL) return;
-	if(DEBUG) printf("Moving %c%c%c\n", p->type, c, r);
+	if(DEBUG) printf("Moving %c%c%cn", p->type, c, r);
 	
 	BOARD(c, r) = p;
 	BOARD(COL(p->position), ROW(p->position)) = NULL;
@@ -339,14 +341,14 @@ char validate_move(char* move){
 	if(strlen(move) < 2 || strlen(move) > 7)//Take dxe8=Q+ into account
 		return 0;
 
-	char* expression = "^\\(K\\|\\([QRBN][a-h1-8]\\?x\\?\\)\\)\\?\\([a-h]x\\)\\?[a-h][1-8]\\(\\=[QRBN]\\)\\?[\\+\\#]\\?$";
+	char* expression = "^(K|([QRBN][a-h1-8]?x?))?([a-h]x)?[a-h][1-8](=[QRBN])?[+#]?$";
 	//https://regex101.com/r/sH3lF4
 	regcomp(&regex, expression, 0);
 
 	if(regexec(&regex, move, 0, NULL, 0)) return 0;
 	
 	regfree(&regex);
-	if(DEBUG) printf("Valid\n");
+	if(DEBUG) printf("Validn");
 	return 1;
 }
 
@@ -361,7 +363,7 @@ char validate_move(char* move){
 char input_move(char* move){
 	char dest_column, dest_row, source;
 	if(!validate_move(move)) return 0;
-	if(DEBUG) printf("Input move: %s\n", move);
+	if(DEBUG) printf("Input move: %sn", move);
 	//It is a pawn
 	if(*move >= 'a' && *move <= 'h'){
 		if(DEBUG) printf("Pawn: ");
@@ -441,7 +443,7 @@ char input_move(char* move){
 				//The other piece is not a king
 				&& BOARD(dest_column, dest_row)->type != 'K'){
 
-				if(DEBUG)printf("black\n");
+				if(DEBUG)printf("blackn");
 				move_piece(BOARD(source, dest_row-1), dest_column, dest_row);
 
 			//Capture with black pawn
@@ -453,7 +455,7 @@ char input_move(char* move){
 				//The other piece is not a king
 				&& BOARD(dest_column, dest_row)->type != 'K'){
 
-				if(DEBUG)printf("white\n");
+				if(DEBUG)printf("whiten");
 				move_piece(BOARD(source, dest_row+1), dest_column, dest_row);
 			}
 		}
@@ -535,25 +537,25 @@ char input_move(char* move){
 				MOVE_KNIGHT(1, -2);
 				MOVE_KNIGHT(-1,-2);
 			}
-			if(DEBUG)printf("Invalid\n");			
+			if(DEBUG)printf("Invalidn");			
 		}
 
 		//Bishop
 		else if(*move == 'B'){
 			//Check all diagonals clockwise
 			if(!source || source > dest_column){
-				MOVE_BISHOP('h', '8');
-				MOVE_BISHOP('h', '1');
+				MOVE_DIAG('h', '8', 'B');
+				MOVE_DIAG('h', '1', 'B');
 			}
 			if(!source || (source < dest_column && source >= 'a')){
-				MOVE_BISHOP('a', '1');
-				MOVE_BISHOP('a', '8');
+				MOVE_DIAG('a', '1', 'B');
+				MOVE_DIAG('a', '8', 'B');
 			}else if(source > dest_row){
-				MOVE_BISHOP('a', '8');
-				MOVE_BISHOP('h', '8');
+				MOVE_DIAG('a', '8', 'B');
+				MOVE_DIAG('h', '8', 'B');
 			}else if(source < dest_row){
-				MOVE_BISHOP('a', '1');
-				MOVE_BISHOP('h', '1');
+				MOVE_DIAG('a', '1', 'B');
+				MOVE_DIAG('h', '1', 'B');
 			}
 			if(DEBUG)printf("Invalid\n");
 		}
@@ -562,18 +564,47 @@ char input_move(char* move){
 		else if(*move == 'R'){
 			//Check for rook moves in all directions, clockwise from up
 			if(!source || source < dest_row)
-				MOVE_ROOK('8');
+				MOVE_STRAIGHT('8', 'R');
 			if(!source || (source < dest_column && source >= 'a'))
-				MOVE_ROOK('h');
+				MOVE_STRAIGHT('h', 'R');
 			if(!source || (source > dest_row && source <= '8'))
-				MOVE_ROOK('1');
+				MOVE_STRAIGHT('1', 'R');
 			if(!source || source > dest_column)
-				MOVE_ROOK('a');
-			
+				MOVE_STRAIGHT('a', 'R');
+
 			if(DEBUG)printf("Invalid\n");
 		}
+
+		//Queen
+		else if(*move == 'Q'){
+			//Check all diagonals clockwise
+			if(!source || source > dest_column){
+				MOVE_DIAG('h', '8', 'Q');
+				MOVE_DIAG('h', '1', 'Q');
+			}
+			if(!source || (source < dest_column && source >= 'a')){
+				MOVE_DIAG('a', '1', 'Q');
+				MOVE_DIAG('a', '8', 'Q');
+			}else if(source > dest_row){
+				MOVE_DIAG('a', '8', 'Q');
+				MOVE_DIAG('h', '8', 'Q');
+			}else if(source < dest_row){
+				MOVE_DIAG('a', '1', 'Q');
+				MOVE_DIAG('h', '1', 'Q');
+			}
+			//Check for rook moves in all directions, clockwise from up
+			if(!source || source < dest_row)
+				MOVE_STRAIGHT('8', 'Q');
+			if(!source || (source < dest_column && source >= 'a'))
+				MOVE_STRAIGHT('h', 'Q');
+			if(!source || (source > dest_row && source <= '8'))
+				MOVE_STRAIGHT('1', 'Q');
+			if(!source || source > dest_column)
+				MOVE_STRAIGHT('a', 'Q');
+		}
+			
 	}
-	if(!DEBUG) printf("%s\n", move);
+	if(!DEBUG) printf("%sn", move);
 
 	source = 0;
 	dest_row = 0;
